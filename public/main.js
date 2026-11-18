@@ -222,7 +222,7 @@
 
   canvas.addEventListener('pointerdown', (e) => {
     Sfx.unlock();
-    if (phase !== 'aim' || drag) return;
+    if (phase !== 'aim' || drag || isModal()) return;
     try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 捕捉できなくても続行 */ }
     drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY };
     updateAim();
@@ -253,12 +253,57 @@
   });
   $('retry').addEventListener('click', reset);
   $('next').addEventListener('click', () => setMission(Missions.indexOf(mission) + 1));
+  // ---------- 画面スタック ----------
+  // 一番上の画面だけを表示・操作でき、閉じると下の画面とフォーカスが戻る。
+  // 結果パネルは土台、お題一覧と計算モデルはその上に重なるモーダル。
+  const stack = [];
+  const isModal = () => stack.length > 0 && stack[stack.length - 1].el.id !== 'result';
+  function defaultFocus(el) {
+    if (el.id === 'result') return $('next').hidden ? $('retry') : $('next');
+    if (el.id === 'list') return el.querySelector('#listItems .cur') || el.querySelector('#listItems button');
+    return $('infoClose');
+  }
+  function showTop(focusEl) {
+    const top = stack[stack.length - 1];
+    for (const s of stack) s.el.hidden = s !== top;
+    // モーダルの間は上部のボタンも止め、フォーカスが背後へ抜けないようにする
+    $('top').inert = isModal();
+    if (top) (focusEl || defaultFocus(top.el)).focus();
+  }
+  function openScreen(id) {
+    if (stack.some((s) => s.el.id === id)) return;
+    showVolume(false);
+    stack.push({ el: $(id), back: document.activeElement });
+    showTop();
+  }
+  function closeScreen() {
+    const s = stack.pop();
+    if (!s) return;
+    s.el.hidden = true;
+    const top = stack[stack.length - 1];
+    const back = s.back && top && top.el.contains(s.back) ? s.back : null;
+    showTop(back);
+    if (!top) {
+      $('top').inert = false;
+      if (s.back && s.back.isConnected) s.back.focus();
+    }
+  }
+  function clearScreens() {
+    while (stack.length) stack.pop().el.hidden = true;
+    $('top').inert = false;
+  }
+  function toggleScreen(id) {
+    const top = stack[stack.length - 1];
+    if (top && top.el.id === id) closeScreen();
+    else openScreen(id);
+  }
+
   $('listBtn').addEventListener('click', () => {
     if (phase === 'fly') return;
     renderList();
-    $('list').hidden = !$('list').hidden;
+    toggleScreen('list');
   });
-  $('listClose').addEventListener('click', () => { $('list').hidden = true; });
+  $('listClose').addEventListener('click', closeScreen);
   $('labBtn').addEventListener('click', () => setMission(-1));
   $('listItems').addEventListener('click', (e) => {
     const btn = e.target.closest('button');
@@ -289,9 +334,20 @@
     if (!e.target.closest('#volBox, #soundBtn')) showVolume(false);
   });
   updateVolume();
-  $('infoBtn').addEventListener('click', () => { $('info').hidden = !$('info').hidden; });
-  $('infoClose').addEventListener('click', () => { $('info').hidden = true; });
+  $('infoBtn').addEventListener('click', () => toggleScreen('info'));
+  $('infoClose').addEventListener('click', closeScreen);
   window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (!$('volBox').hidden) {
+        showVolume(false);
+        $('soundBtn').focus();
+      } else if (isModal()) {
+        closeScreen();
+      }
+      return;
+    }
+    // ボタンにフォーカスがあるときはそのボタンの動作に任せる
+    if (e.target.closest && e.target.closest('button, input')) return;
     if ((e.key === 'Enter' || e.key === ' ') && phase === 'end' && !$('result').hidden) reset();
   });
 
@@ -339,7 +395,6 @@
     progress._last = mission ? mission.id : '_lab';
     saveProgress();
     lastTry = null;
-    $('list').hidden = true;
     reset();
   }
 
@@ -376,7 +431,7 @@
     pendingResult = null;
     cam.phi = 0;
     cam.scale = view.base;
-    $('result').hidden = true;
+    clearScreens();
     $('hud').hidden = true;
     $('hint').hidden = false;
     $('mass').disabled = false;
@@ -511,7 +566,9 @@
     $('resBest').hidden = !res.bestMsg;
     $('next').hidden = !res.next;
     $('retry').className = res.next ? 'sub' : '';
-    el.hidden = false;
+    // モーダルが開いていれば、その下に置いて閉じたときに出す
+    stack.unshift({ el: el, back: null });
+    if (stack.length === 1) showTop();
     Sfx.result(res.ok);
     $('mass').disabled = false;
     updateHeader();
