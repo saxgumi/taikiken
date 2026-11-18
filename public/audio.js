@@ -39,6 +39,17 @@
     if (ctx.state === 'suspended') ctx.resume();
   }
 
+  // スマホでは指を置いた瞬間（pointerdown）は「操作」と見なされず、resume が効かない。
+  // 指を離した・タップした・キーを押したときにも解除を試し、鳴らせるようになったら外す。
+  const UNLOCK_EVENTS = ['pointerup', 'touchend', 'click', 'keydown'];
+  function unlockOnGesture() {
+    unlock();
+    if (ctx && ctx.state === 'running') {
+      UNLOCK_EVENTS.forEach((t) => document.removeEventListener(t, unlockOnGesture, true));
+    }
+  }
+  UNLOCK_EVENTS.forEach((t) => document.addEventListener(t, unlockOnGesture, true));
+
   const ready = () => ctx && ctx.state === 'running';
 
   function envelope(param, t0, peak, attack, dur) {
@@ -112,7 +123,11 @@
     noise({ type: 'bandpass', f0: 300, f1: 2400, q: 1.2, gain: 0.35, attack: 0.05, dur: 0.45 });
   }
 
+  // 解除が発射の直後に間に合ったときも轟音が鳴るよう、鳴らしたいかどうかを覚えておく
+  let roarWanted = false;
+
   function roarStart() {
+    roarWanted = true;
     if (!ready() || roarNode) return;
     const src = ctx.createBufferSource();
     src.buffer = noiseBuf;
@@ -131,6 +146,7 @@
 
   // 飛行中：発光の強さ b（0〜1）に合わせて轟音を大きく、明るくする
   function roar(b) {
+    if (roarWanted && !roarNode) roarStart();
     if (!ready() || !roarNode) return;
     const now = ctx.currentTime;
     roarNode.filter.frequency.setTargetAtTime(150 + 3200 * b * b, now, 0.08);
@@ -138,6 +154,7 @@
   }
 
   function roarStop() {
+    roarWanted = false;
     if (!ctx || !roarNode) return;
     const now = ctx.currentTime;
     roarNode.gain.gain.setTargetAtTime(0.0001, now, 0.06);
