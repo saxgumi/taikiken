@@ -1,9 +1,13 @@
-// 効果音：音声ファイルを使わず Web Audio でその場で合成する
+// 効果音：sfx/ の音声ファイルを鳴らす。ファイルがない音や読み込み前は Web Audio でその場で合成する
 (function (root) {
   'use strict';
 
   const VOLUME_KEY = 'taikiken.volume.v1';
   const MUTE_KEY = 'taikiken.muted.v1';  // 以前のオン・オフ設定。音量が未保存のときだけ読む
+  const FILES = [
+    'impact_light', 'impact_medium', 'explosion', 'explosion_large', 'explosion_huge', 'clear', 'fail',
+  ];
+  const buffers = {};    // 読み込めたファイル名 → AudioBuffer
   let ctx = null, master = null, noiseBuf = null;
   let roarNode = null;   // 飛行中の轟音 { src, filter, gain }
   let aimNode = null;    // 狙い中の音 { osc, gain }
@@ -30,6 +34,26 @@
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    FILES.forEach(load);
+    return true;
+  }
+
+  function load(name) {
+    fetch('sfx/' + name + '.mp3')
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then((data) => new Promise((ok, ng) => ctx.decodeAudioData(data, ok, ng)))
+      .then((buf) => { buffers[name] = buf; })
+      .catch(() => { /* 合成音のまま鳴らす */ });
+  }
+
+  // 読み込めていれば鳴らして true を返す
+  function play(name) {
+    const buf = buffers[name];
+    if (!buf) return false;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(master);
+    src.start();
     return true;
   }
 
@@ -169,8 +193,12 @@
   }
 
   // 衝突：mag（0〜1）が大きいほど低く、長く、大きい
+  // mag の目安：0.3 ≒ TNT 10kg、0.5 ≒ TNT 200t、0.7 ≒ TNT 2Mt
   function impact(mag) {
     if (!ready()) return;
+    const file = mag < 0.12 ? 'impact_light' : mag < 0.3 ? 'impact_medium'
+      : mag < 0.5 ? 'explosion' : mag < 0.7 ? 'explosion_large' : 'explosion_huge';
+    if (play(file)) return;
     if (mag < 0.12) {
       // 小石が落ちた程度の「コツン」
       noise({ type: 'bandpass', f0: 1600, f1: 900, q: 3, gain: 0.5, attack: 0.002, dur: 0.07 });
@@ -200,6 +228,7 @@
 
   function result(ok) {
     if (!ready()) return;
+    if (play(ok ? 'clear' : 'fail')) return;
     const notes = ok ? [659, 880, 1319] : [247, 185];
     notes.forEach((f, i) => {
       tone({ wave: ok ? 'sine' : 'triangle', f0: f, gain: 0.16, attack: 0.01, dur: ok ? 0.5 : 0.6, delay: i * (ok ? 0.11 : 0.22) });
