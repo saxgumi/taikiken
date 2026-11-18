@@ -168,10 +168,20 @@ async function capture(name, spec) {
 }
 
 // 記録した効果音を、ゲームと同じ audio.js でオフラインに鳴らして WAV にする。
-// audio.js は ctx.currentTime を起点に音を予約するので、その値を記録したコマの時刻に差し替えて呼ぶ
+// audio.js は ctx.currentTime を起点に音を予約するので、その値を記録したコマの時刻に差し替えて呼ぶ。
+// audio.js は sfx/*.mp3 を fetch するので、仮のオリジンから public/ のファイルを返す
+const PUBLIC = path.resolve('../public');
+const ORIGIN = 'http://pv.local/';
 async function renderAudio(browser, events, seconds) {
   const page = await browser.newPage();
-  await page.setContent('<!doctype html><html><body></body></html>');
+  await page.route(ORIGIN + '**', (route) => {
+    const rel = new URL(route.request().url()).pathname.slice(1);
+    if (!rel) return route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><body></body></html>' });
+    const file = path.join(PUBLIC, rel);
+    if (!file.startsWith(PUBLIC) || !fs.existsSync(file)) return route.fulfill({ status: 404 });
+    return route.fulfill({ path: file });
+  });
+  await page.goto(ORIGIN);
   await page.evaluate(({ seconds, rate }) => {
     const real = new OfflineAudioContext(2, Math.ceil(seconds * rate), rate);
     window.__real = real;
@@ -187,8 +197,22 @@ async function renderAudio(browser, events, seconds) {
         },
       });
     };
+    // 時刻を指定せずに start() した音（ファイルの再生など）も、記録したコマの時刻から鳴らす
+    // AudioBufferSourceNode は start を自前で持っているので、両方差し替える
+    for (const proto of [AudioScheduledSourceNode.prototype, AudioBufferSourceNode.prototype]) {
+      const start = proto.start;
+      proto.start = function (when, ...rest) {
+        return start.call(this, when === undefined ? window.__t : when, ...rest);
+      };
+    }
   }, { seconds, rate: RATE });
   await page.addScriptTag({ path: AUDIO_JS });
+  // 音声ファイルの読み込みと展開を待ってから鳴らす
+  const loading = page.waitForResponse((r) => r.url().endsWith('.mp3')).catch(() => null);
+  await page.evaluate(() => window.Sfx.unlock());
+  await loading;
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1000);
   const b64 = await page.evaluate(async ({ events, fps }) => {
     for (const e of events) {
       window.__t = e.f / fps;
