@@ -254,18 +254,13 @@
   $('retry').addEventListener('click', reset);
 
   // ---------- シェア ----------
-  // スマホは端末の共有シートで好きなSNSを選べるようにし、PCは X の投稿画面を開く
+  // スマホでもPCでも X の投稿画面を開く（スマホで X アプリが入っていればアプリが開く）
   let shareText = '';
   const SHARE_URL = (document.querySelector('meta[property="og:url"]') || {}).content || location.href;
-  const useShareSheet = () => !!navigator.share && matchMedia('(pointer: coarse)').matches;
   $('share').addEventListener('click', () => {
     if (!shareText) return;
-    if (useShareSheet()) {
-      navigator.share({ text: shareText, url: SHARE_URL }).catch(() => { /* 閉じられただけなら何もしない */ });
-      return;
-    }
     const q = new URLSearchParams({ text: shareText, url: SHARE_URL });
-    window.open('https://twitter.com/intent/tweet?' + q, '_blank', 'noopener');
+    window.open('https://x.com/intent/tweet?' + q, '_blank', 'noopener');
   });
   $('next').addEventListener('click', () => setMission(Missions.indexOf(mission) + 1));
   // ---------- 画面スタック ----------
@@ -585,7 +580,6 @@
     $('retry').className = res.next ? 'sub' : '';
     shareText = res.share || '';
     $('share').hidden = !shareText;
-    $('share').textContent = useShareSheet() ? '結果をシェア' : '結果を X でシェア';
     // モーダルが開いていれば、その下に置いて閉じたときに出す
     stack.unshift({ el: el, back: null });
     if (stack.length === 1) showTop();
