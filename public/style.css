@@ -210,6 +210,18 @@ h1 { margin: 0; font-size: 17px; letter-spacing: .06em; }
 #resBig .rate { color: #ffd76a; letter-spacing: 3px; }
 #resRows dt.key, #resRows dd.key { color: #ffcf8a; font-weight: 700; }
 .resBtns { display: flex; gap: 8px; }
+#share {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 9px;
+  border: 1px solid #ffb34799;
+  border-radius: 10px;
+  background: transparent;
+  color: #ffe2b5;
+  font-size: 14px;
+  font-weight: 700;
+}
+#share:hover { background: #ffb3471f; }
 .resBtns #retry.sub { background: #2a3360; color: #eef2ff; flex: 0 0 38%; }
 
 #list { max-height: calc(100% - 24px); display: flex; flex-direction: column; }

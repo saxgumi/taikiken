@@ -252,6 +252,21 @@
     if (phase === 'end') reset();
   });
   $('retry').addEventListener('click', reset);
+
+  // ---------- シェア ----------
+  // スマホは端末の共有シートで好きなSNSを選べるようにし、PCは X の投稿画面を開く
+  let shareText = '';
+  const SHARE_URL = (document.querySelector('meta[property="og:url"]') || {}).content || location.href;
+  const useShareSheet = () => !!navigator.share && matchMedia('(pointer: coarse)').matches;
+  $('share').addEventListener('click', () => {
+    if (!shareText) return;
+    if (useShareSheet()) {
+      navigator.share({ text: shareText, url: SHARE_URL }).catch(() => { /* 閉じられただけなら何もしない */ });
+      return;
+    }
+    const q = new URLSearchParams({ text: shareText, url: SHARE_URL });
+    window.open('https://twitter.com/intent/tweet?' + q, '_blank', 'noopener');
+  });
   $('next').addEventListener('click', () => setMission(Missions.indexOf(mission) + 1));
   // ---------- 画面スタック ----------
   // 一番上の画面だけを表示・操作でき、閉じると下の画面とフォーカスが戻る。
@@ -518,6 +533,8 @@
       p.bestTries = p.bestTries ? Math.min(p.bestTries, p.tries) : p.tries;
       if (rating === 3 && p.rating !== 3) res.bestMsg += '　★3達成：ゲージに正解の範囲が出ます';
       p.rating = Math.max(p.rating || 0, rating);
+      res.share = '大気圏突入チャレンジ お題' + (Missions.indexOf(mission) + 1) + '「' + mission.title + '」をクリア！\n' +
+        '評価 ' + starStr(rating, 3) + '（' + p.tries + ' 回目）\n#大気圏突入チャレンジ';
       p.tries = 0;
       res.next = Missions.indexOf(mission) < Missions.length - 1;
     } else {
@@ -566,6 +583,9 @@
     $('resBest').hidden = !res.bestMsg;
     $('next').hidden = !res.next;
     $('retry').className = res.next ? 'sub' : '';
+    shareText = res.share || '';
+    $('share').hidden = !shareText;
+    $('share').textContent = useShareSheet() ? '結果をシェア' : '結果を X でシェア';
     // モーダルが開いていれば、その下に置いて閉じたときに出す
     stack.unshift({ el: el, back: null });
     if (stack.length === 1) showTop();
