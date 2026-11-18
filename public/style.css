@@ -32,9 +32,29 @@ html, body {
 }
 .titleRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 h1 { margin: 0; font-size: 17px; letter-spacing: .06em; }
+@media (max-width: 400px) {
+  h1 { font-size: 15px; letter-spacing: .02em; }
+}
 
 .btns { position: relative; display: flex; gap: 8px; }
-#infoBtn, #soundBtn, #listBtn {
+/* お題一覧は文字入りの目立つボタンにして、選べることに気づけるようにする */
+#listBtn {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border-radius: 999px;
+  border: 1px solid #ffb347;
+  background: #ffb34733;
+  color: #ffe2b5;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+#listBtn:hover { background: #ffb3474d; }
+#infoBtn, #soundBtn {
   pointer-events: auto;
   padding: 0;
   width: 30px; height: 30px;
@@ -61,9 +81,10 @@ h1 { margin: 0; font-size: 17px; letter-spacing: .06em; }
 #massLabel { grid-column: 1 / -1; font-variant-numeric: tabular-nums; }
 #massLabel b { font-size: 16px; color: #ffcf8a; }
 
+/* --top-h は main.js が上部の帯の実際の高さ（セーフエリア込み）を入れる */
 #aim {
   position: fixed;
-  top: calc(128px + env(safe-area-inset-top));
+  top: calc(var(--top-h, 128px) + 4px);
   left: 0; right: 0;
   display: flex;
   justify-content: center;
@@ -91,7 +112,7 @@ h1 { margin: 0; font-size: 17px; letter-spacing: .06em; }
 
 #hud {
   position: fixed;
-  top: calc(128px + env(safe-area-inset-top));
+  top: calc(var(--top-h, 128px) + 4px);
   left: 14px;
   display: grid;
   gap: 3px;
@@ -165,18 +186,24 @@ h1 { margin: 0; font-size: 17px; letter-spacing: .06em; }
   #resRows { display: none; }
 }
 
+/* お題欄。中の文字は em で指定し、PCでは土台の大きさだけを画面幅に合わせて変える */
 #missionBox {
-  max-width: 460px;
+  width: fit-content;
+  max-width: min(35em, 100%);
   margin-top: 6px;
+  padding: .45em .8em .5em;
+  border-left: 3px solid #ffb347;
+  border-radius: 0 10px 10px 0;
+  background: #0d1226b3;
   font-size: 13px;
   text-shadow: 0 1px 4px #000;
 }
 .mHead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
-#mNo { color: #aab4d4; font-size: 12px; }
-#mTitle { font-size: 15px; }
-.diff { color: #aab4d4; font-size: 12px; }
+#mNo { color: #aab4d4; font-size: .92em; }
+#mTitle { font-size: 1.15em; }
+.diff { color: #aab4d4; font-size: .92em; }
 #mStars { color: #ff8f6b; letter-spacing: 1px; }
-#mGoal { margin-top: 2px; font-size: 15px; font-weight: 700; color: #ffcf8a; }
+#mGoal { margin-top: 2px; font-size: 1.15em; font-weight: 700; color: #ffcf8a; }
 #mInfo { margin-top: 2px; color: #c3cbe6; font-variant-numeric: tabular-nums; }
 #mInfo .rate { color: #ffd76a; }
 
@@ -231,10 +258,10 @@ h1 { margin: 0; font-size: 17px; letter-spacing: .06em; }
 #volume { width: 150px; height: 28px; accent-color: #ffb347; }
 #volLabel { width: 3em; text-align: right; font-variant-numeric: tabular-nums; }
 
-/* PCの広い画面ではお題欄を1.25倍にする */
+/* PCの広い画面ではお題欄を画面幅に合わせて大きくする（900pxで約16px、1920pxで約21px、上限26px） */
 @media (min-width: 900px) {
-  #missionBox { max-width: 575px; font-size: 16.25px; }
-  #mNo, .diff { font-size: 15px; }
-  #mTitle, #mGoal { font-size: 18.75px; }
-  #aim, #hud { top: calc(150px + env(safe-area-inset-top)); }
+  #missionBox { font-size: clamp(16px, 0.5vw + 11.5px, 26px); }
+  h1 { font-size: clamp(17px, 0.4vw + 13px, 24px); }
+  #infoBtn, #soundBtn { width: 36px; height: 36px; font-size: 17px; }
+  #listBtn { height: 36px; font-size: 16px; }
 }

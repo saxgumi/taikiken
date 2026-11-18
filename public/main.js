@@ -1090,6 +1090,10 @@
 
   window.addEventListener('resize', resize);
   resize();
+  // 狙い表示とHUDを上部の帯のすぐ下に置く。お題の長さや画面幅で帯の高さが変わるので測る
+  new ResizeObserver(() => {
+    document.documentElement.style.setProperty('--top-h', $('top').offsetHeight + 'px');
+  }).observe($('top'));
   const lastIdx = Missions.findIndex((m) => m.id === progress._last);
   setMission(progress._last === '_lab' ? -1 : Math.max(lastIdx, 0));
   requestAnimationFrame(frame);
