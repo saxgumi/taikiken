@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>大気圏突入チャレンジ</title>
+<meta name="description" content="入射角と速度を決めて隕石を大気圏に突入させよう。燃え尽きず、弾かれず、地表に届けば成功。破壊規模をTNT換算で表示します。">
+<meta name="theme-color" content="#05060f">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<header id="top">
+  <div class="titleRow">
+    <h1>大気圏突入チャレンジ</h1>
+    <div class="btns">
+      <button id="listBtn" type="button" aria-label="お題一覧">☰</button>
+      <button id="soundBtn" type="button" aria-label="音量" aria-expanded="false">🔊</button>
+      <button id="infoBtn" type="button" aria-label="計算モデルについて">?</button>
+      <div id="volBox" hidden>
+        <label for="volume">音量</label>
+        <input id="volume" type="range" min="0" max="100" step="5" value="100">
+        <span id="volLabel"></span>
+      </div>
+    </div>
+  </div>
+  <div id="missionBox">
+    <div class="mHead"><span id="mNo"></span><b id="mTitle"></b><span class="diff">難易度 <span id="mStars"></span></span></div>
+    <div id="mGoal"></div>
+    <div id="mInfo"></div>
+  </div>
+  <div id="massBox" hidden>
+    <label for="mass">隕石の質量</label>
+    <input id="mass" type="range" min="0" max="15" step="0.5" value="4">
+    <div id="massLabel"></div>
+  </div>
+</header>
+
+<div id="aim" hidden>
+  <div><span class="k">入射角</span><b id="aimAngle">0.0</b><span class="u">°</span></div>
+  <div><span class="k">突入速度</span><b id="aimSpeed">0.0</b><span class="u">km/s</span></div>
+</div>
+
+<div id="hint">
+  <p>画面をドラッグして、離すと突入！</p>
+  <p class="sub">向きが入射角、長さが速度になります</p>
+  <p class="sub" id="hintLine"></p>
+  <p class="sub" id="lastTry"></p>
+</div>
+
+<div id="hud" hidden>
+  <div><span class="k">高度</span><b id="hudAlt"></b></div>
+  <div><span class="k">速度</span><b id="hudSpeed"></b></div>
+  <div><span class="k">残り質量</span><b id="hudMass"></b></div>
+  <div><span class="k">飛距離</span><b id="hudRange"></b></div>
+  <div><span class="k">再生速度</span><b id="hudWarp"></b></div>
+</div>
+
+<section id="result" hidden>
+  <h2 id="resTitle"></h2>
+  <p id="resLead"></p>
+  <div id="resBig"></div>
+  <p id="resCmp"></p>
+  <dl id="resRows"></dl>
+  <p id="resBest"></p>
+  <div class="resBtns">
+    <button id="next" type="button" hidden>次のお題へ</button>
+    <button id="retry" type="button">もう一度</button>
+  </div>
+</section>
+
+<section id="list" hidden>
+  <h2>お題一覧</h2>
+  <div id="listItems"></div>
+  <button id="labBtn" type="button">実験室（質量を自由に選んで試す）</button>
+  <button id="listClose" type="button">閉じる</button>
+</section>
+
+<section id="info" hidden>
+  <h2>計算モデル</h2>
+  <ul>
+    <li>大気密度：米国標準大気1976の観測値（高度0〜150 km）</li>
+    <li>地球：半径 6371 km、重力は高度に応じて変化</li>
+    <li>隕石：石質（普通コンドライト）の平均値。密度 3.3 g/cm³、破壊強度 1 MPa</li>
+    <li>抗力係数 1.0、熱伝達係数 0.1、アブレーション熱 8 MJ/kg</li>
+    <li>動圧が強度を超えると分裂し、破片の群れが最大7倍まで広がる（パンケーキモデル）</li>
+    <li>突入開始は高度 120 km、速度は 11.2〜72 km/s</li>
+    <li>残り質量が 1 g を切ると「燃え尽き」</li>
+    <li>TNT換算：1 kg = 4.184 MJ（地表到達時の運動エネルギー）</li>
+  </ul>
+  <button id="infoClose" type="button">閉じる</button>
+</section>
+
+<script src="sim.js"></script>
+<script src="audio.js"></script>
+<script src="missions.js"></script>
+<script src="hints.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
